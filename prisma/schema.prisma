@@ -1,0 +1,68 @@
+// prisma/schema.prisma
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  badgeId   String   @unique
+  name      String
+  password  String
+  isAdmin   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reportedIncidents Incident[] @relation("ReportedBy")
+  evidenceAdded     Evidence[] @relation("AddedBy") // Relation: User who added the evidence
+
+  @@map("users")
+}
+
+model Incident {
+  id            String    @id @default(cuid())
+  caseNumber    String    @unique @default(cuid())
+  reportedAt    DateTime  @default(now())
+  occurredAt    DateTime
+  location      String
+  crimeType     String
+  description   String    @db.Text
+  status        String    @default("Open")
+  closingReason String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  reportedById String
+  reportedBy   User   @relation("ReportedBy", fields: [reportedById], references: [id])
+
+  // Relation: An incident can have multiple pieces of evidence
+  evidence      Evidence[]
+
+  @@map("incidents")
+}
+
+// --- New Evidence Model ---
+model Evidence {
+  id               String   @id @default(cuid())
+  description      String   @db.Text // Description of the evidence item
+  type             String   // E.g., "Photo", "Document", "Physical Item", "Statement", "Video"
+  storageReference String   // E.g., File path, URL, Locker number, Bag ID
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relation to Incident (Many-to-One)
+  incidentId String
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade) // Cascade delete evidence if incident is deleted
+
+  // Relation to User who added the evidence (Many-to-One)
+  addedById String
+  addedBy   User   @relation("AddedBy", fields: [addedById], references: [id])
+
+  @@map("evidence") // Maps to the 'evidence' table
+}
+// ------------------------

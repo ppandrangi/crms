@@ -1,0 +1,44 @@
+// prisma/schema.prisma
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  badgeId   String   @unique
+  name      String
+  password  String
+  isAdmin   Boolean  @default(false) // Added isAdmin flag
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reportedIncidents Incident[] @relation("ReportedBy")
+
+  @@map("users")
+}
+
+model Incident {
+  id            String    @id @default(cuid())
+  caseNumber    String    @unique @default(cuid())
+  reportedAt    DateTime  @default(now())
+  occurredAt    DateTime
+  location      String
+  crimeType     String
+  description   String    @db.Text
+  status        String    @default("Open")
+  closingReason String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  reportedById String
+  reportedBy   User   @relation("ReportedBy", fields: [reportedById], references: [id])
+
+  @@map("incidents")
+}
+

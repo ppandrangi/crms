@@ -1,0 +1,63 @@
+# Removed the top-level 'version' tag - it's obsolete
+
+services:
+  # Single service for Next.js App (Frontend UI + Backend API Routes)
+  app:
+    build:
+      context: ./ # Path to your Next.js project directory
+      # Removed 'dockerfile: Dockerfile.dev' - defaults to 'Dockerfile'
+    command: npm run dev # Command to start dev server
+    volumes:
+      - ./:/app # Mount local code for hot-reloading
+      - /app/node_modules # Don't mount local node_modules over container ones
+      - /app/.next # Don't mount local .next over container ones
+    ports:
+      - "3000:3000" # Expose Next.js default port
+    environment:
+      # Connection string for Postgres (accessible via 'db' hostname)
+      - DATABASE_URL=postgresql://user:password@db:5432/crmsdb
+      # Add any other necessary environment variables for your Next.js app
+      - NEXT_PUBLIC_API_BASE_URL=http://localhost:3000/api # Example for client-side fetches
+    depends_on:
+      - db # Ensure DB starts before the app
+    networks:
+      - crms-net
+
+  # Database Service
+  db:
+    image: postgres:15 # Use a specific version
+    container_name: postgres-db
+    environment:
+      POSTGRES_DB: crmsdb
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password # Use Docker secrets or env files for real secrets
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Persistent data volume
+    ports:
+      - "5432:5432" # Expose PostgreSQL port locally if needed for direct access
+    networks:
+      - crms-net
+
+  # --- Optional Services (Uncomment if needed) ---
+  # prometheus:
+  #   image: prom/prometheus:latest
+  #   # ... rest of prometheus config
+  #   networks:
+  #     - crms-net
+
+  # grafana:
+  #   image: grafana/grafana:latest
+  #   # ... rest of grafana config
+  #   networks:
+  #     - crms-net
+
+# Define the network for services to communicate
+networks:
+  crms-net:
+    driver: bridge
+
+# Define persistent volumes
+volumes:
+  postgres_data:
+  # prometheus_data: # Uncomment if using Prometheus
+  # grafana_data:    # Uncomment if using Grafana
